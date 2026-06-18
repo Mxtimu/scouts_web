@@ -1,0 +1,193 @@
+import React, { useEffect } from 'react'
+import { X, Bell, Zap, Users, Target } from 'lucide-react'
+import { useAuth } from '../context/AuthContext'
+import { NOTIF_READ_KEY } from './OnboardingGate'
+
+export function useNotifRead() {
+  const [isRead, setIsRead] = React.useState(() => localStorage.getItem(NOTIF_READ_KEY) === '1')
+  const markRead = React.useCallback(() => {
+    localStorage.setItem(NOTIF_READ_KEY, '1')
+    setIsRead(true)
+  }, [])
+  return { isRead, markRead }
+}
+
+export default function NotificationPanel({ open, onClose, onRead }) {
+  const { user } = useAuth()
+  const firstName = (user?.full_name || '').trim().split(/\s+/)[0] || 'Scout'
+
+  useEffect(() => {
+    if (open) onRead?.()
+  }, [open, onRead])
+
+  if (!open) return null
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end animate-fade-in" role="dialog" aria-modal="true">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+
+      {/* Drawer */}
+      <div className="relative flex h-full w-full max-w-sm flex-col border-l border-scout-border bg-scout-surface shadow-2xl animate-slide-in-right sm:max-w-md">
+
+        {/* Header */}
+        <div className="flex flex-shrink-0 items-center justify-between border-b border-scout-border px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg border border-scout-accent/20 bg-scout-accent/10">
+              <Bell size={14} className="text-scout-accent" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-white">Notifications</h2>
+              <p className="text-[11px] text-slate-500">From Young Narratives</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            aria-label="Close notifications"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-scout-card hover:text-white"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
+
+          {/* Message header */}
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-scout-accent/20 bg-scout-accent/10 px-2.5 py-1 text-[11px] font-semibold text-scout-accent-light">
+                <Zap size={10} />
+                Young Narratives
+              </span>
+            </div>
+            <span className="text-[10px] text-slate-600 pt-1 flex-shrink-0">Jun 2026</span>
+          </div>
+
+          <h3 className="text-base font-bold leading-snug text-white">
+            {firstName}, you're in. Welcome to Young Narratives.
+          </h3>
+
+          <div className="space-y-4 text-sm leading-relaxed text-slate-300">
+            <p>
+              Have you ever looked at a brand's campaign or product and thought… "That doesn't feel like my life at all"?
+            </p>
+
+            <p className="font-semibold text-white">You are not alone.</p>
+
+            <p>
+              Young Narratives exists because we suspect there is a gap between what brands assume about young South Africans and what we actually live, think, and want.
+            </p>
+
+            <p>We don't have all the answers yet. That's where you come in.</p>
+
+            {/* Why the gap matters */}
+            <div className="rounded-xl border border-scout-border bg-scout-card px-4 py-4 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-wider text-white">Why does this gap matter?</p>
+              <p className="text-xs text-slate-400">Because when brands get us wrong, it's not just annoying ads. It means:</p>
+              <ul className="space-y-1.5">
+                {[
+                  "Banking products that don't fit how we actually manage money",
+                  "Job platforms that miss how we really look for work",
+                  "Campaigns that talk about us but never to us",
+                  "Opportunities that never reach our phones",
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                    <span className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full bg-rose-400" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-slate-400">And when brands get us right?</p>
+              <ul className="space-y-1.5">
+                {[
+                  "Better tools. Better services.",
+                  "Better decisions that actually reflect our lives — not some outdated version of who we are.",
+                ].map((item, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-slate-300">
+                    <span className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full bg-emerald-400" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-slate-300">
+                Closing that gap isn't helping brands sell more stuff. It is making sure our generation stops being invisible in rooms where decisions get made about our future.
+              </p>
+            </div>
+
+            <p>
+              <span className="font-semibold text-white">That's why Young Narratives exists.</span> And you? You are now officially a Signal Scout — the engine that makes this work.
+            </p>
+
+            {/* Pilot phase */}
+            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-4 space-y-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-300">
+                Welcome to the Pilot Phase — You Are Helping Build This
+              </p>
+              <p className="text-xs text-slate-300">
+                Because you are part of our very first wave, you are entering our official pilot and testing phase. While you test missions and the web interface, we will be testing our tech, delivery systems, decoding for meaning and tracking. We want your honest feedback — not just on mission content, but on how the platform feels to use.
+              </p>
+              <p className="text-xs font-semibold text-amber-200">You are not just a Scout. You are a founding builder.</p>
+            </div>
+
+            {/* What is a Signal Scout */}
+            <div className="rounded-xl border border-scout-border bg-scout-card px-4 py-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Users size={12} className="text-scout-accent" />
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-white">What is a Signal Scout?</p>
+              </div>
+              <p className="text-xs text-slate-300">
+                Signal Scouts are the mechanism. The people on the ground capturing real, everyday lived experiences and turning them into a clean, clear signal about what our generation actually wants.
+              </p>
+              <p className="text-xs text-slate-300">
+                Mission by mission, scout by scout, we are building a new intelligence system — one that helps brands design products, services, and experiences that actually reflect today's youth.
+              </p>
+              <p className="text-xs font-medium text-scout-accent-light">Because they were built from us.</p>
+            </div>
+
+            {/* First missions */}
+            <div className="rounded-xl border border-scout-border bg-scout-card px-4 py-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <Target size={12} className="text-scout-accent" />
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-white">Your first missions: The Bank Sprint + more</p>
+              </div>
+              <p className="text-xs text-slate-300">
+                A major bank wants to understand how young people think about money — really understand, not assume. But that's just the start. Right now, 5 missions are already live — all built on real questions from brands who want to get it right.
+              </p>
+              <p className="text-xs text-slate-300">
+                These are practice sprints designed to mimic exactly how real client missions will operate. Your honest insights could shape how brands design for our generation.
+              </p>
+              <p className="text-xs text-slate-300">
+                You will earn airtime, data, or Uber vouchers. But the real reward? Knowing a major brand moved differently because of what you — a Signal Scout — lived and shared.
+              </p>
+            </div>
+
+            {/* What now */}
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 space-y-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-emerald-300">What now?</p>
+              <p className="text-xs text-slate-300">
+                Head to your mission board — 5 missions are already live and waiting. You can start whenever you're ready, with 2 weeks to complete all missions.
+              </p>
+            </div>
+
+            {/* Closing */}
+            <div className="border-t border-scout-border pt-4 space-y-2">
+              <p>You belong to something bigger now.</p>
+              <p className="text-xs text-slate-400">
+                <span className="font-medium text-white">Young Narratives</span> is the why.{' '}
+                <span className="font-medium text-white">Signal Scouts</span> is the how.
+              </p>
+              <p className="font-semibold text-white">Let's close the gap.</p>
+              <p className="text-xs text-slate-500 pt-1">
+                Cheers,<br />The Young Narratives Team
+              </p>
+              <p className="text-xs italic text-slate-600 pt-1">
+                P.S. Your identity stays protected. Skip anything. Leave anytime. But stay — because the signal needs more Scouts.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
