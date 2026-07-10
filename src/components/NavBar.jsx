@@ -40,7 +40,7 @@ export default function NavBar({ activeView = 'missions', onViewChange, missions
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-scout-accent">
             <Zap size={14} className="text-white" strokeWidth={2.5} />
           </div>
-          <span className="text-sm font-bold tracking-tight text-white">
+          <span className="text-sm font-bold tracking-tight text-scout-text">
             Signal<span className="text-scout-accent-light">Scouts</span>
           </span>
         </div>
@@ -51,8 +51,8 @@ export default function NavBar({ activeView = 'missions', onViewChange, missions
             onClick={() => onViewChange?.('home')}
             className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 sm:px-3 text-xs font-semibold transition-all ${
               activeView === 'home'
-                ? 'bg-scout-surface text-white shadow-sm'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-scout-surface text-scout-text shadow-sm'
+                : 'text-scout-text-muted hover:text-scout-text'
             }`}
           >
             <Home size={13} />
@@ -62,8 +62,8 @@ export default function NavBar({ activeView = 'missions', onViewChange, missions
             onClick={() => onViewChange?.('missions')}
             className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 sm:px-3 text-xs font-semibold transition-all ${
               activeView === 'missions'
-                ? 'bg-scout-surface text-white shadow-sm'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-scout-surface text-scout-text shadow-sm'
+                : 'text-scout-text-muted hover:text-scout-text'
             }`}
           >
             <LayoutGrid size={13} />
@@ -72,11 +72,11 @@ export default function NavBar({ activeView = 'missions', onViewChange, missions
         </nav>
 
         {/* Right: scout ID + avatar */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => setShowNotif(true)}
             aria-label="Notifications"
-            className="relative flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-scout-surface hover:text-white"
+            className="relative flex h-8 w-8 items-center justify-center rounded-full text-scout-text-muted transition hover:bg-scout-surface hover:text-scout-text"
           >
             <Bell size={16} />
             {!isRead && (
@@ -85,7 +85,7 @@ export default function NavBar({ activeView = 'missions', onViewChange, missions
           </button>
 
           <div className="relative flex items-center gap-2">
-            <span className="hidden text-xs font-medium text-slate-400 sm:block">{scoutId}</span>
+            <span className="hidden text-xs font-medium text-scout-text-muted sm:block">{scoutId}</span>
             <button
               onClick={() => setShowMenu(s => !s)}
               aria-label="Profile"
@@ -100,12 +100,12 @@ export default function NavBar({ activeView = 'missions', onViewChange, missions
                 <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
                 <div className="absolute right-0 top-10 z-20 min-w-[180px] rounded-xl border border-scout-border bg-scout-card p-1 shadow-xl">
                   <div className="border-b border-scout-border px-3 py-2 mb-1">
-                    <p className="text-xs font-semibold text-white">{fullName || scoutId}</p>
-                    <p className="text-[10px] text-slate-500">{user?.email}</p>
+                    <p className="text-xs font-semibold text-scout-text">{fullName || scoutId}</p>
+                    <p className="text-[10px] text-scout-text-muted">{user?.email}</p>
                   </div>
                   <button
                     onClick={() => { setShowMenu(false); logout() }}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-slate-400 transition hover:bg-scout-surface hover:text-white"
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-scout-text-muted transition hover:bg-scout-surface hover:text-scout-text"
                   >
                     <LogOut size={12} />
                     Sign out

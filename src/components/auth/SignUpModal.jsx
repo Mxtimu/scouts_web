@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { X, User, Mail, Phone, MapPin, Calendar, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 import { GoogleLogin } from '@react-oauth/google'
-import { createScout, findScoutByEmail } from '../../services/supabase'
+import { createScout, findScoutByEmail, recordLogin } from '../../services/supabase'
 import { hashPassword } from '../../services/crypto'
 import { sendWelcomeEmail } from '../../services/email'
 import { useAuth } from '../../context/AuthContext'
@@ -99,7 +99,8 @@ export default function SignUpModal({ onClose, onSwitchToSignIn }) {
     try {
       const existing = await findScoutByEmail(payload.email)
       if (existing) {
-        login(existing)
+        const first_login_at = await recordLogin(existing.scout_id)
+        login({ ...existing, first_login_at })
         onClose()
         return
       }

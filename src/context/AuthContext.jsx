@@ -21,6 +21,8 @@ export function AuthProvider({ children }) {
       phone:         userData.phone,
       date_of_birth: userData.date_of_birth,
       location:      userData.location,
+      onboarded:     userData.onboarded ?? false,
+      first_login_at: userData.first_login_at ?? null,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(safe))
     setUser(safe)
@@ -31,8 +33,18 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  // Merges a partial update (e.g. { onboarded: true }) into the stored user.
+  const updateUser = (patch) => {
+    setUser(prev => {
+      if (!prev) return prev
+      const next = { ...prev, ...patch }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next))
+      return next
+    })
+  }
+
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   )

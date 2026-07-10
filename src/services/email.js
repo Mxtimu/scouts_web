@@ -19,7 +19,14 @@ export async function sendWelcomeEmail({ full_name, email }) {
   await emailjs.send(
     SERVICE_ID,
     TEMPLATE_ID,
-    { first_name, to_name: full_name, to_email: email },
+    {
+      first_name,
+      to_name:   full_name,
+      to_email:  email,
+      from_name: 'Signal Scouts',
+      subject:   'Welcome to Signal Scouts — Your missions await',
+      reply_to:  'hello@signalscouts.co.za',
+    },
     PUBLIC_KEY,
   )
 }

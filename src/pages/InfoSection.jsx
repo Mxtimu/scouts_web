@@ -1,5 +1,5 @@
 import React from 'react'
-import { Zap, ArrowRight, MessageSquare, Image, Mic } from 'lucide-react'
+import { Zap, ArrowRight, MessageSquare, Image } from 'lucide-react'
 
 const HOW_IT_WORKS = [
   {
@@ -10,7 +10,7 @@ const HOW_IT_WORKS = [
   {
     step: '02',
     title: 'Pick up missions',
-    body: 'Every wave brings short missions. Write, record a voice note (1–2 minutes), or upload a safe photo.',
+    body: 'Every wave brings short missions. Write your take or upload a safe photo.',
   },
   {
     step: '03',
@@ -20,9 +20,8 @@ const HOW_IT_WORKS = [
 ]
 
 const FEATURES = [
-  { Icon: MessageSquare, label: 'Write your take',     desc: 'Long-form text responses when you need to say more.' },
-  { Icon: Image,         label: 'Upload proof',         desc: 'Screenshots or photos to support your answer — cropped and blurred.' },
-  { Icon: Mic,           label: 'Record a voice note',  desc: 'Speak your mind — up to 3 minutes of audio.' },
+  { Icon: MessageSquare, label: 'Write your take', desc: 'Long-form text responses when you need to say more.' },
+  { Icon: Image,         label: 'Upload proof',    desc: 'Screenshots or photos to support your answer — cropped and blurred.' },
 ]
 
 export default function InfoSection({ onGoToMissions }) {
@@ -94,7 +93,7 @@ export default function InfoSection({ onGoToMissions }) {
             Share your truth, your way
           </h2>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="mx-auto max-w-2xl grid gap-4 sm:grid-cols-2">
             {FEATURES.map(({ Icon, label, desc }) => (
               <div key={label} className="flex gap-4 rounded-2xl border border-scout-border bg-scout-card p-5">
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-scout-accent/10 border border-scout-accent/20">

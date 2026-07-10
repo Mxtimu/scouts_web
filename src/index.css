@@ -2,13 +2,41 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Theme variables ─────────────────────────────────────────────────────────── */
+
+:root {
+  /* Light mode — slate palette for clear structure */
+  --scout-bg-rgb:      241 245 249;   /* slate-100 */
+  --scout-surface-rgb: 255 255 255;   /* white */
+  --scout-card-rgb:    226 232 240;   /* slate-200 */
+  --scout-border-rgb:  203 213 225;   /* slate-300 — visible borders */
+  --scout-muted-rgb:   148 163 184;   /* slate-400 */
+  --scout-text:        #0F172A;       /* slate-900 */
+  --scout-text-sub:    #334155;       /* slate-700 */
+  --scout-text-muted:  #64748B;       /* slate-500 */
+}
+
+html.dark {
+  /* Dark mode */
+  --scout-bg-rgb:      11 12 16;
+  --scout-surface-rgb: 19 22 28;
+  --scout-card-rgb:    31 40 51;
+  --scout-border-rgb:  42 55 68;
+  --scout-muted-rgb:   59 74 90;
+  --scout-text:        #F9FAFB;
+  --scout-text-sub:    #E5E7EB;
+  --scout-text-muted:  #9CA3AF;
+}
+
+/* ── Base styles ──────────────────────────────────────────────────────────────── */
+
 @layer base {
   * {
     -webkit-tap-highlight-color: transparent;
   }
   html {
     @apply bg-scout-bg font-sans;
-    color: #E5E7EB;
+    color: var(--scout-text);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
@@ -29,6 +57,31 @@
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-scout-accent;
   }
+}
+
+/* ── Light-mode text overrides ───────────────────────────────────────────────── */
+/*
+ * In light mode, components use `text-white` / `text-slate-200/300` for dark-theme
+ * readability. These overrides convert them to readable dark text on light backgrounds.
+ * Buttons and icons with colored backgrounds (bg-scout-accent, gradients) remain
+ * readable because all those backgrounds are bright enough for dark text too.
+ */
+
+html:not(.dark) .text-white,
+html:not(.dark) .hover\:text-white:hover {
+  color: var(--scout-text) !important;
+}
+
+html:not(.dark) .text-slate-200,
+html:not(.dark) .text-slate-300,
+html:not(.dark) .group-hover\:text-white {
+  color: var(--scout-text-sub) !important;
+}
+
+html:not(.dark) .text-slate-400,
+html:not(.dark) .text-slate-500,
+html:not(.dark) .text-slate-600 {
+  color: var(--scout-text-muted) !important;
 }
 
 @layer utilities {

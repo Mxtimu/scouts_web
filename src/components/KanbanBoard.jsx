@@ -7,8 +7,8 @@ const COLUMNS = [
     id: 'upcoming',
     label: 'Upcoming',
     icon: Rocket,
-    accent: 'text-slate-400',
-    dotColor: 'bg-slate-500',
+    accent: 'text-scout-text-muted',
+    dotColor: 'bg-scout-muted',
     description: 'Opens soon',
   },
   {
@@ -39,11 +39,11 @@ function ColumnHeader({ col, count }) {
         </div>
         <div>
           <h2 className={`text-sm font-bold ${col.accent}`}>{col.label}</h2>
-          <p className="text-[10px] text-slate-600">{col.description}</p>
+          <p className="text-[10px] text-scout-text-muted">{col.description}</p>
         </div>
       </div>
       {count > 0 && (
-        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-scout-muted px-1.5 text-[10px] font-bold text-slate-400">
+        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-scout-muted px-1.5 text-[10px] font-bold text-scout-text-muted">
           {count}
         </span>
       )}
@@ -57,14 +57,13 @@ function EmptyColumn({ col }) {
       <div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-scout-card`}>
         <col.icon size={18} className={`${col.accent} opacity-40`} />
       </div>
-      <p className="text-xs text-slate-600">
+      <p className="text-xs text-scout-text-muted">
         {col.id === 'upcoming' ? 'All caught up' : col.id === 'current' ? 'No active missions' : 'Nothing yet'}
       </p>
     </div>
   )
 }
 
-// Horizontal scroll with arrows — used on mobile/tablet
 function MobileColumnPicker({ activeCol, onChange, columns }) {
   return (
     <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 lg:hidden">
@@ -75,7 +74,7 @@ function MobileColumnPicker({ activeCol, onChange, columns }) {
           className={`flex flex-shrink-0 items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold transition-all ${
             activeCol === col.id
               ? 'border-scout-accent/50 bg-scout-accent/10 text-scout-accent-light'
-              : 'border-scout-border bg-scout-card text-slate-400 hover:border-scout-muted'
+              : 'border-scout-border bg-scout-card text-scout-text-muted hover:border-scout-muted'
           }`}
         >
           <span className={`h-1.5 w-1.5 rounded-full ${col.dotColor}`} />

@@ -513,7 +513,7 @@ function ConsentStep({ user, onComplete, onBack }) {
             label="I agree to receive a unique Scout ID that will be used to attribute my mission responses anonymously."
           />
           <Checkbox id="mission_responses" checked={checks.mission_responses} onChange={toggle('mission_responses')}
-            label="I agree that my mission responses (text, audio, or visual insights) will be de-identified — meaning my name, Scout ID, and contact details are removed — and shared with brands as part of aggregated research intelligence."
+            label="I agree that my mission responses (text or visual insights) will be de-identified — meaning my name, Scout ID, and contact details are removed — and shared with brands as part of aggregated research intelligence."
           />
           <Checkbox id="reward_sharing" checked={checks.reward_sharing} onChange={toggle('reward_sharing')}
             label="I agree that Young Narratives may share limited information (such as my phone number) with reward providers (airtime, data, Uber) for the sole purpose of delivering rewards I have earned."

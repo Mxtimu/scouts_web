@@ -22,7 +22,7 @@ import { readFileSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
-// ── Load .env manually (no dotenv dependency) ────────────────────────────────
+
 
 const __dir = dirname(fileURLToPath(import.meta.url))
 const envPath = resolve(__dir, '.env')
@@ -38,13 +38,13 @@ for (const line of envLines) {
   env[key] = val
 }
 
-const SUPABASE_URL      = env.VITE_SUPABASE_URL
-const SUPABASE_ANON_KEY = env.VITE_SUPABASE_ANON_KEY
-const AT_PAT            = env.VITE_AIRTABLE_PAT
-const AT_BASE_ID        = env.VITE_AIRTABLE_BASE_ID
+const SUPABASE_URL         = env.VITE_SUPABASE_URL
+const SUPABASE_SERVICE_KEY = env.SUPABASE_SERVICE_ROLE_KEY
+const AT_PAT               = env.VITE_AIRTABLE_PAT
+const AT_BASE_ID           = env.VITE_AIRTABLE_BASE_ID
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('ERROR: VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY must be set in .env')
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error('ERROR: VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in .env')
   process.exit(1)
 }
 if (!AT_PAT || !AT_BASE_ID) {
@@ -52,7 +52,9 @@ if (!AT_PAT || !AT_BASE_ID) {
   process.exit(1)
 }
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+// Server-side only — the service role key bypasses RLS, which is required
+// now that anon access to scouts/submissions is locked down.
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY)
 
 // ── Airtable helpers ─────────────────────────────────────────────────────────
 
@@ -90,7 +92,7 @@ async function migrateScouts() {
     scout_id:     r.fields['Scout ID']    || r.fields['scout_id']    || '',
     full_name:    r.fields['Full Name']   || r.fields['full_name']   || '',
     email:        (r.fields['Email']      || r.fields['email']       || '').toLowerCase().trim(),
-    phone_number: r.fields['Phone']       || r.fields['phone']       || '',
+    phone_number: r.fields['Phone Number'] || r.fields['Phone']      || r.fields['phone']       || '',
     birth_date:   r.fields['Date of Birth'] || r.fields['date_of_birth'] || null,
     location:     r.fields['Location']   || r.fields['location']    || '',
     password_hash: r.fields['Password Hash'] || r.fields['password_hash'] || '',
@@ -132,15 +134,18 @@ async function migrateSubmissions(knownScoutIds) {
     }))
     .filter(r => r.scout_id && r.mission_id && scoutSet.has(r.scout_id))
 
-  if (rows.length === 0) {
+  // Deduplicate by (scout_id, mission_id) — Airtable may have duplicate entries
+  const deduped = [...new Map(rows.map(r => [`${r.scout_id}:${r.mission_id}`, r])).values()]
+
+  if (deduped.length === 0) {
     console.log('   No valid submissions to migrate')
     return
   }
 
-  console.log(`   Inserting ${rows.length} submissions into Supabase…`)
+  console.log(`   Inserting ${deduped.length} submissions into Supabase…`)
   const { error } = await supabase
     .from('submissions')
-    .upsert(rows, { onConflict: 'scout_id,mission_id' })
+    .upsert(deduped, { onConflict: 'scout_id,mission_id' })
 
   if (error) throw new Error(`Supabase submissions insert failed: ${error.message}`)
   console.log('   ✓ Submissions migrated')

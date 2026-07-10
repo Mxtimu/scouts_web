@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
 import { X, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 import { GoogleLogin } from '@react-oauth/google'
-import { findScoutByEmail } from '../../services/supabase'
-import { verifyPassword } from '../../services/crypto'
+import { findScoutByEmail, getPasswordSalt, verifyScoutPassword, recordLogin } from '../../services/supabase'
+import { computeHash } from '../../services/crypto'
 import { useAuth } from '../../context/AuthContext'
 
 const GOOGLE_ENABLED = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
@@ -29,21 +29,25 @@ export default function SignInModal({ onClose, onSwitchToSignUp }) {
     setError(null)
     setLoading(true)
     try {
-      const scout = await findScoutByEmail(email.trim().toLowerCase())
+      const trimmedEmail = email.trim().toLowerCase()
+      const scout = await findScoutByEmail(trimmedEmail)
       if (!scout) {
         setError("No account found with that email. Create one below.")
         return
       }
-      if (!scout.password_hash) {
+      if (!scout.has_password) {
         setError("This account uses Google Sign-In. Please sign in with Google.")
         return
       }
-      const valid = await verifyPassword(password, scout.password_hash)
-      if (!valid) {
+      const salt = await getPasswordSalt(trimmedEmail)
+      const hash = await computeHash(password, salt)
+      const verified = await verifyScoutPassword(trimmedEmail, hash)
+      if (!verified) {
         setError("Incorrect password. Please try again.")
         return
       }
-      login(scout)
+      const first_login_at = await recordLogin(verified.scout_id)
+      login({ ...verified, first_login_at })
       onClose()
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.')
@@ -64,7 +68,8 @@ export default function SignInModal({ onClose, onSwitchToSignUp }) {
         setError("No account found for this Google account. Create one first.")
         return
       }
-      login(scout)
+      const first_login_at = await recordLogin(scout.scout_id)
+      login({ ...scout, first_login_at })
       onClose()
     } catch (err) {
       setError(err.message || 'Something went wrong.')

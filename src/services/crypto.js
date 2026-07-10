@@ -7,10 +7,9 @@ export async function hashPassword(password) {
   return `${salt}:${hash}`
 }
 
-export async function verifyPassword(password, stored) {
-  const [salt, hash] = stored.split(':')
-  if (!salt || !hash) return false
+// Used server-side (verify_scout_password RPC) to check the computed hash —
+// the stored salt:hash is never sent to the client, only the salt is.
+export async function computeHash(password, salt) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + password))
-  const computed = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
-  return computed === hash
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
