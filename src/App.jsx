@@ -7,7 +7,7 @@ import LandingPage from './pages/LandingPage'
 import InfoSection from './pages/InfoSection'
 import OnboardingGate from './components/OnboardingGate'
 import { INITIAL_MISSIONS } from './data/missions'
-import { getScoutSubmissions, markScoutOnboarded, getMissions } from './services/supabase'
+import { getScoutSubmissions, markScoutOnboarded, getMissions, activateScheduledMissions } from './services/supabase'
 import { useAuth } from './context/AuthContext'
 
 function formatDeadline(deadline) {
@@ -41,42 +41,84 @@ export default function App() {
     }
   }
 
-  // 3-day (72h) mission window from the scout's first login — falls back to
-  // created_at for older accounts that logged in before this was tracked.
-  const windowStart = user?.first_login_at || user?.created_at
-  const missionDeadline = windowStart
-    ? new Date(new Date(windowStart).getTime() + 3 * 24 * 60 * 60 * 1000)
-    : null
+  const MISSION_WINDOW_MS = 3 * 24 * 60 * 60 * 1000 // 72h
+
+  const accountWindowStart = user?.first_login_at || user?.created_at
+
+  // A mission's window for THIS scout starts at whichever is later: when
+  // the mission was published, or when this scout first logged in. This
+  // keeps both cases fair — a mission Zuki publishes later still gives a
+  // scout their full 72h even if their account is older (the original
+  // problem this was built for), AND a brand-new scout still gets their
+  // full 72h on a mission that was actually published weeks ago (today's
+  // bug — using opens_at alone made already-published missions look
+  // permanently "missed" for anyone who joins after the window would have
+  // closed for the very first scout).
+  const missionCloseTime = (mission) => {
+    const starts = [mission?.opensAt, accountWindowStart]
+      .filter(Boolean)
+      .map(t => new Date(t).getTime())
+    if (starts.length === 0) return null
+    return new Date(Math.max(...starts) + MISSION_WINDOW_MS)
+  }
+
+  // Hero banner shows whichever open mission is closing soonest.
+  const openCloseTimes = missions
+    .filter(m => m.status === 'current')
+    .map(missionCloseTime)
+    .filter(Boolean)
+  const missionDeadline = openCloseTimes.length
+    ? new Date(Math.min(...openCloseTimes.map(d => d.getTime())))
+    : missionCloseTime(null)
   const isExpired = missionDeadline ? Date.now() > missionDeadline.getTime() : false
+
+  // The specific mission open in the modal has its own deadline, which can
+  // differ from the hero banner's (e.g. an older mission closing sooner, or
+  // a brand-new one that's still well within its own window).
+  const selectedDeadline = selected ? missionCloseTime(selected) : null
+  const selectedExpired  = selectedDeadline ? Date.now() > selectedDeadline.getTime() : false
 
   // Load mission definitions from Supabase (admin-managed) — falls back to
   // the hardcoded seed list if the fetch fails or the table is ever empty,
-  // so a DB hiccup never shows a blank board.
+  // so a DB hiccup never shows a blank board. Activates any scheduled
+  // missions whose publish time has passed first (trigger-on-load — this
+  // app has no cron), so the fetch right after sees up-to-date statuses.
   useEffect(() => {
-    getMissions()
-      .then(fetched => setBaseMissions(fetched.length ? fetched : INITIAL_MISSIONS))
-      .catch(() => setBaseMissions(INITIAL_MISSIONS))
+    activateScheduledMissions()
+      .catch(() => {/* best-effort — a missed activation just tries again next load */})
+      .finally(() => {
+        getMissions()
+          .then(fetched => setBaseMissions(fetched.length ? fetched : INITIAL_MISSIONS))
+          .catch(() => setBaseMissions(INITIAL_MISSIONS))
+      })
   }, [])
 
   // Hydrate completed missions from Supabase on every login, merged onto
-  // whichever mission list just loaded above.
+  // whichever mission list just loaded above. Missions that closed with no
+  // submission get reclassified as 'missed' so they show in their own
+  // Kanban tab instead of sitting in "Current" looking still-open.
   useEffect(() => {
     if (!baseMissions) return
     if (!isAuthenticated || !user?.scout_id) { setMissions(baseMissions); setSyncing(false); return }
     getScoutSubmissions(user.scout_id)
       .then(submissions => {
         const doneMap = new Map(submissions.map(s => [s.mission_id, s]))
-        setMissions(baseMissions.map(m =>
-          doneMap.has(m.id)
-            ? {
-                ...m,
-                status:          'completed',
-                submittedAt:     doneMap.get(m.id).submitted_at,
-                submittedText:   doneMap.get(m.id).text_response || '',
-                submittedImages: doneMap.get(m.id).images || [],
-              }
-            : m
-        ))
+        setMissions(baseMissions.map(m => {
+          if (doneMap.has(m.id)) {
+            return {
+              ...m,
+              status:          'completed',
+              submittedAt:     doneMap.get(m.id).submitted_at,
+              submittedText:   doneMap.get(m.id).text_response || '',
+              submittedImages: doneMap.get(m.id).images || [],
+            }
+          }
+          const closeTime = missionCloseTime(m)
+          if (m.status === 'current' && closeTime && Date.now() > closeTime.getTime()) {
+            return { ...m, status: 'missed' }
+          }
+          return m
+        }))
       })
       .catch(() => setMissions(baseMissions))
       .finally(() => setSyncing(false))
@@ -134,7 +176,7 @@ export default function App() {
               <div className="flex items-end justify-between">
                 <div className="flex flex-col gap-1">
                   <p className="text-xs font-semibold uppercase tracking-widest text-scout-accent">
-                    June 2026 wave
+                    THE 2026 WAVE
                   </p>
                   <h1 className="text-2xl font-extrabold tracking-tight text-scout-text sm:text-3xl">
                     Mission Board
@@ -199,8 +241,8 @@ export default function App() {
               onClose={() => setSelected(null)}
               onSubmit={handleSubmit}
               onUpdate={handleUpdate}
-              isExpired={isExpired}
-              missionDeadline={missionDeadline}
+              isExpired={selectedExpired}
+              missionDeadline={selectedDeadline}
             />
           )}
         </>

@@ -1,5 +1,5 @@
 import React, { useRef } from 'react'
-import { Rocket, Zap, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Rocket, Zap, CheckCircle2, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react'
 import MissionCard from './MissionCard'
 
 const COLUMNS = [
@@ -18,6 +18,14 @@ const COLUMNS = [
     accent: 'text-scout-accent-light',
     dotColor: 'bg-scout-accent',
     description: 'Ready to complete',
+  },
+  {
+    id: 'missed',
+    label: 'Missed',
+    icon: AlertTriangle,
+    accent: 'text-rose-400',
+    dotColor: 'bg-rose-400',
+    description: 'Window closed',
   },
   {
     id: 'completed',
@@ -58,7 +66,10 @@ function EmptyColumn({ col }) {
         <col.icon size={18} className={`${col.accent} opacity-40`} />
       </div>
       <p className="text-xs text-scout-text-muted">
-        {col.id === 'upcoming' ? 'All caught up' : col.id === 'current' ? 'No active missions' : 'Nothing yet'}
+        {col.id === 'upcoming' ? 'All caught up'
+          : col.id === 'current' ? 'No active missions'
+          : col.id === 'missed' ? 'Nothing missed'
+          : 'Nothing yet'}
       </p>
     </div>
   )
@@ -102,8 +113,8 @@ export default function KanbanBoard({ missions, onCardClick }) {
         />
       </div>
 
-      {/* ── Desktop: three columns side by side ── */}
-      <div className="hidden gap-4 lg:grid lg:grid-cols-3">
+      {/* ── Desktop: four columns side by side ── */}
+      <div className="hidden gap-4 lg:grid lg:grid-cols-4">
         {COLUMNS.map((col) => {
           const cards = byStatus(col.id)
           return (

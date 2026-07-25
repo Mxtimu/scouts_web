@@ -28,6 +28,7 @@ export async function findScoutByEmail(email) {
     has_password:    row.has_password,
     onboarded:       row.onboarded,
     first_login_at:  row.first_login_at,
+    id_number:       row.id_number,
   }
 }
 
@@ -61,6 +62,7 @@ export async function verifyScoutPassword(email, hash) {
     created_at:      row.created_at,
     onboarded:       row.onboarded,
     first_login_at:  row.first_login_at,
+    id_number:       row.id_number,
   }
 }
 
@@ -78,6 +80,58 @@ export async function recordLogin(scoutId) {
   const { data, error } = await supabase.rpc('record_login', { p_scout_id: scoutId })
   if (error) throw new Error(error.message)
   return data
+}
+
+// Updates full name/phone/location/ID number. passwordHash may be null
+// (Google-only accounts) — the RPC only enforces a match if the account
+// actually has a password. Returns null on auth failure (wrong password),
+// which the caller should show as "Incorrect password" rather than a
+// generic error.
+export async function updateScoutProfile(scoutId, passwordHash, { full_name, phone, location, id_number }) {
+  const { data, error } = await supabase.rpc('update_scout_profile', {
+    p_scout_id:      scoutId,
+    p_password_hash: passwordHash,
+    p_full_name:     full_name ?? null,
+    p_phone:         phone ?? null,
+    p_location:      location ?? null,
+    p_id_number:     id_number ?? null,
+  })
+
+  if (error) throw new Error(error.message)
+  const row = data?.[0]
+  if (!row) return null
+
+  return {
+    scout_id:      row.scout_id,
+    full_name:     row.full_name,
+    email:         row.email,
+    phone:         row.phone_number,
+    date_of_birth: row.birth_date,
+    location:      row.location,
+    created_at:    row.created_at,
+    id_number:     row.id_number,
+  }
+}
+
+// Returns { token, full_name } if the email matches an account that has a
+// password, or null otherwise. The caller MUST show the same message either
+// way — this distinction exists only to know whether to send an email, never
+// to reveal to the requester whether the account exists.
+export async function requestPasswordReset(email) {
+  const { data, error } = await supabase.rpc('request_password_reset', { p_email: email.toLowerCase().trim() })
+  if (error) throw new Error(error.message)
+  const row = data?.[0]
+  if (!row) return null
+  return { token: row.token, full_name: row.full_name }
+}
+
+// Returns the scout_id on success, or null if the token is invalid, already
+// used, or expired.
+export async function resetScoutPassword(token, newHash) {
+  const { data, error } = await supabase.rpc('reset_scout_password', { p_token: token, p_new_hash: newHash })
+  if (error) throw new Error(error.message)
+  const row = data?.[0]
+  return row ? row.scout_id : null
 }
 
 async function scoutIdExists(id) {
@@ -211,7 +265,7 @@ export async function submitMission({ scout_id, mission_id, wave, text_response,
 export async function getMissions() {
   const { data, error } = await supabase
     .from('missions')
-    .select('mission_id, title, teaser, topic, status, estimated_time, reward, prompt')
+    .select('mission_id, title, teaser, topic, status, estimated_time, reward, prompt, opens_at, scheduled_open_at')
     .order('created_at', { ascending: true })
 
   if (error) throw new Error(error.message)
@@ -224,40 +278,67 @@ export async function getMissions() {
     estimatedTime: m.estimated_time,
     reward:        m.reward,
     prompt:        m.prompt,
+    // Stamped server-side the moment a mission is published — see
+    // fix-mission-scheduling.sql. Drives that mission's own 72h window.
+    opensAt:         m.opens_at,
+    // Optional admin-set future publish time — see add-scheduled-publish.sql.
+    scheduledOpenAt: m.scheduled_open_at,
   }))
+}
+
+// Flips any Upcoming mission whose scheduled_open_at has passed to Current.
+// Safe to call from anon — see add-scheduled-publish.sql for the narrow
+// server-side guard. Called on every scout app load (trigger-on-load, no
+// cron available in this architecture).
+export async function activateScheduledMissions() {
+  await supabase.rpc('activate_scheduled_missions')
 }
 
 // Admin-only — requires an authenticated Supabase Auth session (see
 // add-admin-missions.sql; anon has no write grant on missions).
-export async function createMission({ id, title, teaser, topic, status, estimatedTime, reward, prompt }) {
+export async function createMission({ id, title, teaser, topic, status, estimatedTime, reward, prompt, scheduledOpenAt }) {
   const { error } = await supabase
     .from('missions')
     .insert({
-      mission_id:     id,
+      mission_id:        id,
       title,
-      teaser:         teaser || '',
-      topic:          topic || 'Culture',
-      status:         status || 'current',
-      estimated_time: estimatedTime || '',
-      reward:         reward || '',
-      prompt:         prompt || '',
+      teaser:            teaser || '',
+      topic:             topic || 'Culture',
+      status:            status || 'upcoming',
+      estimated_time:    estimatedTime || '',
+      reward:            reward || '',
+      prompt:            prompt || '',
+      scheduled_open_at: scheduledOpenAt || null,
     })
 
   if (error) throw new Error(error.message)
 }
 
-export async function updateMission(id, { title, teaser, topic, status, estimatedTime, reward, prompt }) {
+export async function updateMission(id, { title, teaser, topic, status, estimatedTime, reward, prompt, scheduledOpenAt }) {
   const { error } = await supabase
     .from('missions')
     .update({
       title,
-      teaser:         teaser || '',
-      topic:          topic || 'Culture',
-      status:         status || 'current',
-      estimated_time: estimatedTime || '',
-      reward:         reward || '',
-      prompt:         prompt || '',
+      teaser:            teaser || '',
+      topic:             topic || 'Culture',
+      status:            status || 'upcoming',
+      estimated_time:    estimatedTime || '',
+      reward:            reward || '',
+      prompt:            prompt || '',
+      scheduled_open_at: scheduledOpenAt || null,
     })
+    .eq('mission_id', id)
+
+  if (error) throw new Error(error.message)
+}
+
+// Permanently deletes a mission. submissions.mission_id has ON DELETE
+// CASCADE, so any scout submissions for this mission are deleted with it —
+// the caller must warn about that before calling this.
+export async function deleteMission(id) {
+  const { error } = await supabase
+    .from('missions')
+    .delete()
     .eq('mission_id', id)
 
   if (error) throw new Error(error.message)

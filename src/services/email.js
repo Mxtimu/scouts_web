@@ -1,8 +1,9 @@
 import emailjs from '@emailjs/browser'
 
-const SERVICE_ID  = import.meta.env.VITE_EMAILJS_SERVICE_ID?.replace(/^'|'$/g, '')
-const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID?.replace(/^'|'$/g, '')
-const PUBLIC_KEY  = import.meta.env.VITE_EMAILJS_PUBLIC_KEY?.replace(/^'|'$/g, '')
+const SERVICE_ID        = import.meta.env.VITE_EMAILJS_SERVICE_ID?.replace(/^'|'$/g, '')
+const TEMPLATE_ID       = import.meta.env.VITE_EMAILJS_TEMPLATE_ID?.replace(/^'|'$/g, '')
+const RESET_TEMPLATE_ID = import.meta.env.VITE_EMAILJS_RESET_TEMPLATE_ID?.replace(/^'|'$/g, '')
+const PUBLIC_KEY        = import.meta.env.VITE_EMAILJS_PUBLIC_KEY?.replace(/^'|'$/g, '')
 
 function getFirstName(fullName) {
   return (fullName || '').trim().split(/\s+/)[0]
@@ -26,6 +27,30 @@ export async function sendWelcomeEmail({ full_name, email }) {
       from_name: 'Signal Scouts',
       subject:   'Welcome to Signal Scouts — Your missions await',
       reply_to:  'hello@signalscouts.co.za',
+    },
+    PUBLIC_KEY,
+  )
+}
+
+export async function sendPasswordResetEmail({ full_name, email, reset_link }) {
+  if (!SERVICE_ID || !RESET_TEMPLATE_ID || !PUBLIC_KEY) {
+    console.warn('EmailJS reset template not configured — skipping password reset email.')
+    return
+  }
+
+  const first_name = getFirstName(full_name)
+
+  await emailjs.send(
+    SERVICE_ID,
+    RESET_TEMPLATE_ID,
+    {
+      first_name,
+      to_name:    full_name,
+      to_email:   email,
+      from_name:  'Signal Scouts',
+      subject:    'Reset your Signal Scouts password',
+      reply_to:   'hello@signalscouts.co.za',
+      reset_link,
     },
     PUBLIC_KEY,
   )

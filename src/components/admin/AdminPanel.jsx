@@ -1,16 +1,27 @@
 import React, { useState, useEffect } from 'react'
-import { LogOut, Plus, Pencil, Loader2, AlertCircle, ArrowLeft, Save } from 'lucide-react'
+import { LogOut, Plus, Pencil, Trash2, Loader2, AlertCircle, ArrowLeft, Save } from 'lucide-react'
 import { TOPIC_META } from '../../data/missions'
-import { getMissions, createMission, updateMission, adminSignOut } from '../../services/supabase'
+import { getMissions, createMission, updateMission, deleteMission, adminSignOut, activateScheduledMissions } from '../../services/supabase'
 
 const BLANK_FORM = {
-  id: '', title: '', teaser: '', topic: 'Culture', status: 'current',
-  estimatedTime: '', reward: '', prompt: '',
+  id: '', title: '', teaser: '', topic: 'Culture', status: 'upcoming',
+  estimatedTime: '', reward: '', prompt: '', scheduledOpenAt: '',
+}
+
+// <input type="datetime-local"> needs "YYYY-MM-DDTHH:mm" in local time —
+// neither the raw ISO string from the DB nor Date's default formats match.
+function toDatetimeLocal(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 function MissionForm({ mission, onSaved, onCancel }) {
   const isNew = !mission
-  const [form, setForm]     = useState(mission ? { ...mission } : BLANK_FORM)
+  const [form, setForm] = useState(() =>
+    mission ? { ...mission, scheduledOpenAt: toDatetimeLocal(mission.scheduledOpenAt) } : BLANK_FORM
+  )
   const [saving, setSaving] = useState(false)
   const [error, setError]   = useState(null)
 
@@ -25,10 +36,14 @@ function MissionForm({ mission, onSaved, onCancel }) {
     }
     setSaving(true)
     try {
+      const payload = {
+        ...form,
+        scheduledOpenAt: form.scheduledOpenAt ? new Date(form.scheduledOpenAt).toISOString() : null,
+      }
       if (isNew) {
-        await createMission(form)
+        await createMission(payload)
       } else {
-        await updateMission(form.id, form)
+        await updateMission(payload.id, payload)
       }
       onSaved?.()
     } catch (err) {
@@ -79,15 +94,24 @@ function MissionForm({ mission, onSaved, onCancel }) {
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-slate-400">Status</label>
           <select value={form.status} onChange={set('status')} className={inputClass}>
-            <option value="current">Published</option>
-            <option value="upcoming">Draft</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="current">Current</option>
           </select>
+          <p className="mt-1 text-[11px] text-slate-500">Switching to Current starts this mission's 72h submission window — it can't be paused once started.</p>
         </div>
         <div>
           <label className="mb-1.5 block text-xs font-semibold text-slate-400">Estimated time</label>
           <input value={form.estimatedTime} onChange={set('estimatedTime')} placeholder="8–15 mins" className={inputClass} />
         </div>
       </div>
+
+      {form.status === 'upcoming' && (
+        <div>
+          <label className="mb-1.5 block text-xs font-semibold text-slate-400">Scheduled to go live (optional)</label>
+          <input type="datetime-local" value={form.scheduledOpenAt} onChange={set('scheduledOpenAt')} className={inputClass} />
+          <p className="mt-1 text-[11px] text-slate-500">Leave blank to only publish by switching Status to Current yourself. If set, it goes live automatically at that time — no need to come back and flip it.</p>
+        </div>
+      )}
 
       <div>
         <label className="mb-1.5 block text-xs font-semibold text-slate-400">Reward</label>
@@ -115,13 +139,18 @@ export default function AdminPanel({ onSignedOut }) {
   const [loading, setLoading]   = useState(true)
   const [loadError, setLoadError] = useState(null)
   const [editing, setEditing]   = useState(null) // null | 'new' | mission object
+  const [deletingId, setDeletingId] = useState(null)
 
   const loadMissions = () => {
     setLoading(true)
-    getMissions()
-      .then(setMissions)
-      .catch(err => setLoadError(err.message || 'Could not load missions.'))
-      .finally(() => setLoading(false))
+    activateScheduledMissions()
+      .catch(() => {/* best-effort */})
+      .finally(() => {
+        getMissions()
+          .then(setMissions)
+          .catch(err => setLoadError(err.message || 'Could not load missions.'))
+          .finally(() => setLoading(false))
+      })
   }
 
   useEffect(loadMissions, [])
@@ -134,6 +163,23 @@ export default function AdminPanel({ onSignedOut }) {
   const handleSignOut = async () => {
     await adminSignOut()
     onSignedOut?.()
+  }
+
+  const handleDelete = async (mission) => {
+    const confirmed = window.confirm(
+      `Delete "${mission.title}" permanently?\n\nThis will also permanently delete any scout submissions already made for this mission — that data cannot be recovered. This cannot be undone.`
+    )
+    if (!confirmed) return
+
+    setDeletingId(mission.id)
+    try {
+      await deleteMission(mission.id)
+      loadMissions()
+    } catch (err) {
+      alert(err.message || 'Could not delete mission.')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   return (
@@ -179,11 +225,24 @@ export default function AdminPanel({ onSignedOut }) {
                   <div key={m.id} className="flex items-center justify-between rounded-xl border border-scout-border bg-scout-card px-4 py-3">
                     <div>
                       <p className="text-sm font-semibold text-white">{m.title}</p>
-                      <p className="text-xs text-slate-500">{m.id} · {m.topic} · {m.status === 'current' ? 'Published' : 'Draft'}</p>
+                      <p className="text-xs text-slate-500">
+                        {m.id} · {m.topic} · {m.status === 'current' ? 'Current' : 'Upcoming'}
+                        {m.status === 'upcoming' && m.scheduledOpenAt && ` · goes live ${new Date(m.scheduledOpenAt).toLocaleString('en-ZA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`}
+                      </p>
                     </div>
-                    <button onClick={() => setEditing(m)} className="flex items-center gap-1.5 rounded-lg border border-scout-border px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white">
-                      <Pencil size={12} /> Edit
-                    </button>
+                    <div className="flex flex-shrink-0 items-center gap-2">
+                      <button onClick={() => setEditing(m)} className="flex items-center gap-1.5 rounded-lg border border-scout-border px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white">
+                        <Pencil size={12} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(m)}
+                        disabled={deletingId === m.id}
+                        className="flex items-center gap-1.5 rounded-lg border border-rose-500/20 px-3 py-1.5 text-xs font-semibold text-rose-400 transition hover:bg-rose-500/10 disabled:opacity-50"
+                      >
+                        {deletingId === m.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>

@@ -507,7 +507,7 @@ export default function MissionModal({ mission, onClose, onSubmit, onUpdate, isE
       const imageUrls = await submitMission({
         scout_id:      user.scout_id,
         mission_id:    mission.id,
-        wave:          'June 2026',
+        wave:          'THE 2026 WAVE',
         text_response: text,
         image_files:   files,
       })

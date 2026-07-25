@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import App from './App'
 import AdminGate from './components/admin/AdminGate'
+import ResetPasswordView from './pages/ResetPasswordView'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
 import './index.css'
@@ -14,6 +15,14 @@ function Root() {
   // (see AdminGate) — entirely independent of the scouts' custom auth.
   if (window.location.hash === '#admin') {
     return <ThemeProvider><AdminGate /></ThemeProvider>
+  }
+
+  // #reset-password?token=... — the emailed password-reset link lands here,
+  // entirely outside the normal scout app tree.
+  if (window.location.hash.startsWith('#reset-password')) {
+    const query = window.location.hash.split('?')[1] || ''
+    const token = new URLSearchParams(query).get('token')
+    return <ThemeProvider><ResetPasswordView token={token} /></ThemeProvider>
   }
 
   const inner = (

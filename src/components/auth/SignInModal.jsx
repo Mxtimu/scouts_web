@@ -4,6 +4,7 @@ import { GoogleLogin } from '@react-oauth/google'
 import { findScoutByEmail, getPasswordSalt, verifyScoutPassword, recordLogin } from '../../services/supabase'
 import { computeHash } from '../../services/crypto'
 import { useAuth } from '../../context/AuthContext'
+import ForgotPasswordModal from './ForgotPasswordModal'
 
 const GOOGLE_ENABLED = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
 
@@ -23,6 +24,7 @@ export default function SignInModal({ onClose, onSwitchToSignUp }) {
   const [showPass, setShowPass] = useState(false)
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState(null)
+  const [showForgot, setShowForgot] = useState(false)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -76,6 +78,10 @@ export default function SignInModal({ onClose, onSwitchToSignUp }) {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (showForgot) {
+    return <ForgotPasswordModal onClose={onClose} onBackToSignIn={() => setShowForgot(false)} />
   }
 
   return (
@@ -141,7 +147,12 @@ export default function SignInModal({ onClose, onSwitchToSignUp }) {
             </div>
 
             <div>
-              <label className="mb-1.5 block text-xs font-semibold text-slate-400">Password</label>
+              <div className="mb-1.5 flex items-center justify-between">
+                <label className="block text-xs font-semibold text-slate-400">Password</label>
+                <button type="button" onClick={() => setShowForgot(true)} className="text-xs font-semibold text-scout-accent-light hover:underline">
+                  Forgot password?
+                </button>
+              </div>
               <div className="relative">
                 <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input

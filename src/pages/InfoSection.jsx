@@ -37,7 +37,7 @@ export default function InfoSection({ onGoToMissions }) {
         <div className="relative mx-auto max-w-4xl px-4 py-20 text-center sm:px-6 sm:py-28">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-scout-accent/30 bg-scout-accent/10 px-3 py-1 text-xs font-semibold text-scout-accent-light">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-scout-accent" />
-            June 2026 wave is live
+            THE 2026 WAVE is live
           </div>
 
           <h1 className="mb-4 text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-6xl">

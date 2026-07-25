@@ -23,6 +23,7 @@ export function AuthProvider({ children }) {
       location:      userData.location,
       onboarded:     userData.onboarded ?? false,
       first_login_at: userData.first_login_at ?? null,
+      id_number:     userData.id_number ?? null,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(safe))
     setUser(safe)

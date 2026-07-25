@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
-import { Zap, Bell, LogOut, LayoutGrid, Home } from 'lucide-react'
+import { Zap, Bell, LogOut, LayoutGrid, Home, UserCog } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import NotificationPanel, { useNotifRead } from './NotificationPanel'
+import EditProfileModal from './EditProfileModal'
 
 const AVATAR_COLOURS = [
   'from-orange-500 to-red-500',
@@ -22,6 +23,7 @@ export default function NavBar({ activeView = 'missions', onViewChange, missions
   const { user, logout } = useAuth()
   const [showMenu, setShowMenu] = useState(false)
   const [showNotif, setShowNotif] = useState(false)
+  const [showEditProfile, setShowEditProfile] = useState(false)
   const { isRead, markRead } = useNotifRead()
 
   const scoutId    = user?.scout_id ?? 'SC---'
@@ -102,7 +104,15 @@ export default function NavBar({ activeView = 'missions', onViewChange, missions
                   <div className="border-b border-scout-border px-3 py-2 mb-1">
                     <p className="text-xs font-semibold text-scout-text">{fullName || scoutId}</p>
                     <p className="text-[10px] text-scout-text-muted">{user?.email}</p>
+                    <p className="mt-1 text-[10px] font-semibold text-scout-accent-light">{scoutId}</p>
                   </div>
+                  <button
+                    onClick={() => { setShowMenu(false); setShowEditProfile(true) }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-scout-text-muted transition hover:bg-scout-surface hover:text-scout-text"
+                  >
+                    <UserCog size={12} />
+                    Edit Profile
+                  </button>
                   <button
                     onClick={() => { setShowMenu(false); logout() }}
                     className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-scout-text-muted transition hover:bg-scout-surface hover:text-scout-text"
@@ -123,6 +133,10 @@ export default function NavBar({ activeView = 'missions', onViewChange, missions
       onClose={() => setShowNotif(false)}
       onRead={markRead}
     />
+
+    {showEditProfile && (
+      <EditProfileModal onClose={() => setShowEditProfile(false)} />
+    )}
     </>
   )
 }

@@ -1,24 +1,27 @@
 import React from 'react'
-import { Clock, Star, CheckCircle2, ArrowRight } from 'lucide-react'
+import { Clock, Star, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react'
 import { TOPIC_META } from '../data/missions'
 
-function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
-}
-
-function DaysUntil({ dueDate }) {
-  const now = new Date()
-  const due = new Date(dueDate)
-  const diff = Math.ceil((due - now) / (1000 * 60 * 60 * 24))
-  if (diff < 0) return <span className="text-xs text-rose-400">Overdue</span>
-  if (diff === 0) return <span className="text-xs font-semibold text-amber-400">Due today</span>
-  if (diff <= 2) return <span className="text-xs font-semibold text-amber-400">{diff}d left</span>
-  return <span className="text-xs text-scout-text-muted">{diff}d left</span>
+// Admin-scheduled missions carry a real future opens time; ones with none
+// (manual-publish-only) just show static "Opens when published" text.
+function formatOpensIn(scheduledOpenAt) {
+  if (!scheduledOpenAt) return null
+  const ms = new Date(scheduledOpenAt).getTime() - Date.now()
+  if (ms <= 0) return 'Live now'
+  const totalHours = Math.floor(ms / (1000 * 60 * 60))
+  const days = Math.floor(totalHours / 24)
+  const hours = totalHours % 24
+  if (days > 0) return `Live in ${days}d ${hours}h`
+  if (totalHours > 0) return `Live in ${totalHours}h`
+  const mins = Math.floor(ms / (1000 * 60))
+  return `Live in ${mins}m`
 }
 
 // ── Upcoming card ─────────────────────────────────────────────────────────────
 function UpcomingCard({ mission }) {
   const meta = TOPIC_META[mission.topic] || TOPIC_META['Culture']
+  const opensIn = formatOpensIn(mission.scheduledOpenAt)
+
   return (
     <div className="group relative rounded-2xl border border-scout-border bg-scout-card p-4 transition-all duration-200 hover:border-scout-muted hover:shadow-xl hover:shadow-black/30">
       <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-transparent to-scout-bg/40" />
@@ -29,7 +32,6 @@ function UpcomingCard({ mission }) {
             <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
             {mission.topic}
           </span>
-          <DaysUntil dueDate={mission.dueDate} />
         </div>
 
         <div>
@@ -42,7 +44,7 @@ function UpcomingCard({ mission }) {
             <span className="flex items-center gap-1 text-xs"><Clock size={11} />{mission.estimatedTime}</span>
             <span className="flex items-center gap-1 text-xs"><Star size={11} />{mission.reward}</span>
           </div>
-          <span className="text-xs text-scout-text-muted">Opens {formatDate(mission.dueDate)}</span>
+          <span className="text-xs text-scout-text-muted">{opensIn ? opensIn : 'Opens when published'}</span>
         </div>
       </div>
     </div>
@@ -129,9 +131,48 @@ function CompletedCard({ mission, onClick }) {
   )
 }
 
+// ── Missed card ───────────────────────────────────────────────────────────────
+function MissedCard({ mission, onClick }) {
+  const meta = TOPIC_META[mission.topic] || TOPIC_META['Culture']
+
+  return (
+    <button
+      onClick={onClick}
+      className="group w-full rounded-2xl border border-rose-500/20 bg-scout-card/60 p-4 text-left opacity-75 transition hover:opacity-100 hover:border-rose-500/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400"
+    >
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${meta.color} ${meta.bg} ${meta.border}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+            {mission.topic}
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-rose-400">
+            <AlertTriangle size={10} strokeWidth={2.5} />
+            Missed
+          </span>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold text-scout-text-muted line-through decoration-scout-muted">{mission.title}</h3>
+          <p className="mt-1 text-xs leading-relaxed text-scout-text-muted">{mission.teaser}</p>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-1 text-xs text-scout-text-muted line-through">
+            <Star size={11} />
+            {mission.reward}
+          </span>
+          <span className="text-xs text-rose-400/70">Window closed</span>
+        </div>
+      </div>
+    </button>
+  )
+}
+
 // ── Exported dispatcher ───────────────────────────────────────────────────────
 export default function MissionCard({ mission, onClick }) {
   if (mission.status === 'upcoming') return <UpcomingCard mission={mission} />
   if (mission.status === 'current')  return <CurrentCard  mission={mission} onClick={onClick} />
+  if (mission.status === 'missed')   return <MissedCard   mission={mission} onClick={onClick} />
   return <CompletedCard mission={mission} onClick={onClick} />
 }
