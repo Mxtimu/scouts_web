@@ -30,11 +30,14 @@ function KpiTile({ icon: Icon, label, value }) {
   )
 }
 
-function Section({ title, action, children }) {
+function Section({ title, subtitle, action, children }) {
   return (
     <div className="rounded-2xl border border-scout-border bg-scout-surface p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-bold text-white">{title}</h3>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-bold text-white">{title}</h3>
+          {subtitle && <p className="mt-0.5 text-[11px] text-scout-text-muted">{subtitle}</p>}
+        </div>
         {action}
       </div>
       {children}
@@ -59,6 +62,7 @@ export default function InsightsPanel() {
   const [filterMission, setFilterMission]   = useState('all')
   const [filterBank, setFilterBank]         = useState('all')
   const [filterQuality, setFilterQuality]   = useState('all')
+  const [searchTerm, setSearchTerm]         = useState('')
   const [expandedRow, setExpandedRow]       = useState(null)
 
   const [selectedScout, setSelectedScout]   = useState('')
@@ -93,12 +97,22 @@ export default function InsightsPanel() {
 
   const filteredEvidence = useMemo(() => {
     if (!evidence) return []
-    return evidence.filter(e =>
-      (filterMission === 'all' || e.mission_id === filterMission) &&
-      (filterBank === 'all' || e.bank_permission === filterBank) &&
-      (filterQuality === 'all' || e.quality === filterQuality)
-    )
-  }, [evidence, filterMission, filterBank, filterQuality])
+    const term = searchTerm.trim().toLowerCase()
+    return evidence.filter(e => {
+      if (filterMission !== 'all' && e.mission_id !== filterMission) return false
+      if (filterBank !== 'all' && e.bank_permission !== filterBank) return false
+      if (filterQuality !== 'all' && e.quality !== filterQuality) return false
+      if (!term) return true
+      // Searches everything a board member might ask about live — quotes,
+      // analyst reasoning, and scout name — not just the visible columns.
+      const haystack = [
+        e.full_name, e.verbatim_quote, e.analyst_note,
+        e.access_barriers_reason, e.bank_permission_reason,
+        ...(e.money_utilities || []), ...(e.passion_categories || []), ...(e.access_barriers || []),
+      ].join(' ').toLowerCase()
+      return haystack.includes(term)
+    })
+  }, [evidence, filterMission, filterBank, filterQuality, searchTerm])
 
   if (error) {
     return (
@@ -141,22 +155,22 @@ export default function InsightsPanel() {
 
       {/* Segmentation charts */}
       <div className="grid gap-4 lg:grid-cols-2">
-        <Section title="Money Utilities">
+        <Section title="Money Utilities" subtitle={`n = ${codedCount} coded responses`}>
           <FrequencyBarChart data={countBy(evidence, 'money_utilities', { isArray: true })} />
         </Section>
-        <Section title="Bank Permission">
+        <Section title="Bank Permission" subtitle={`n = ${codedCount} coded responses`}>
           <StatusDonutChart data={countBy(evidence, 'bank_permission')} />
         </Section>
-        <Section title="Passion Categories">
+        <Section title="Passion Categories" subtitle={`n = ${codedCount} coded responses`}>
           <FrequencyBarChart data={countBy(evidence, 'passion_categories', { isArray: true })} />
         </Section>
-        <Section title="Access Barriers">
+        <Section title="Access Barriers" subtitle={`n = ${codedCount} coded responses`}>
           <FrequencyBarChart data={countBy(evidence, 'access_barriers', { isArray: true })} />
         </Section>
-        <Section title="Decision Control">
+        <Section title="Decision Control" subtitle={`n = ${codedCount} coded responses`}>
           <FrequencyBarChart data={countBy(evidence, 'decision_control')} />
         </Section>
-        <Section title="Data Quality">
+        <Section title="Data Quality" subtitle={`n = ${codedCount} coded responses`}>
           <div className="grid grid-cols-2 gap-2">
             <StatusDonutChart data={countBy(evidence, 'quality')} height={200} />
             <StatusDonutChart data={countBy(evidence, 'confidence')} height={200} />
@@ -184,6 +198,14 @@ export default function InsightsPanel() {
         ])} />}
       >
         <div className="mb-3 flex flex-wrap gap-2">
+          <div className="relative flex-1 min-w-[180px]">
+            <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input
+              type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Search quotes, notes, scout names…"
+              className="w-full rounded-lg border border-scout-border bg-scout-card py-1.5 pl-7 pr-2.5 text-xs text-slate-300 placeholder-slate-600 outline-none focus:border-scout-accent/50"
+            />
+          </div>
           <select value={filterMission} onChange={e => setFilterMission(e.target.value)} className="rounded-lg border border-scout-border bg-scout-card px-2.5 py-1.5 text-xs text-slate-300">
             <option value="all">All missions</option>
             {missionIds.map(id => <option key={id} value={id}>{id}</option>)}
