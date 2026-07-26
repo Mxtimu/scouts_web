@@ -5,7 +5,10 @@ import {
 } from 'lucide-react'
 
 export const ONBOARDED_KEY  = 'signal_scouts_onboarded_v2'
-export const NOTIF_READ_KEY = 'signal_scouts_notif_read_v2'
+// Bumped to v3 when the Scout Code was added, so every scout — even ones
+// who already dismissed notifications before — gets a fresh unread
+// indicator prompting them to open the panel and see the new content.
+export const NOTIF_READ_KEY = 'signal_scouts_notif_read_v3'
 export const CONSENT_KEY    = 'signal_scouts_consent_v2'
 const CONSENT_VERSION       = '1.0'
 

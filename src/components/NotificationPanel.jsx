@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react'
-import { X, Bell, Zap, Users, Target, Star, Clock, AlertTriangle } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { X, Bell, Zap, Users, Target, Star, Clock, AlertTriangle, ShieldCheck, ChevronDown } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { NOTIF_READ_KEY } from './OnboardingGate'
 
@@ -10,6 +10,120 @@ export function useNotifRead() {
     setIsRead(true)
   }, [])
   return { isRead, markRead }
+}
+
+const SCOUT_CODE_SECTIONS = [
+  {
+    title: '1. Identity and registration',
+    points: [
+      'You must register on the Young Narratives platform using your full, correct personal details (name, surname and ID number).',
+      'The details you provide when you register must match the details you use when you claim rewards. Using different details will delay or block your rewards.',
+      'You must use the same cellphone number for registration and reward redemption. This should be the number you use most frequently and have access to.',
+      'At this stage you cannot use different numbers for registration and rewards. If you change your number, you must update it on the platform before completing new missions.',
+      'Missing or incorrect information (names, numbers or ID details) may mean we cannot verify you and therefore cannot process your reward.',
+      'If you notice that your name or number looks different on your side compared to what you submitted, you must contact the Young Narratives team immediately to correct it.',
+    ],
+  },
+  {
+    title: '2. Verification and protection',
+    points: [
+      'Young Narratives must be able to verify that you are who you say you are before any reward is processed.',
+      'ID numbers help us keep the community protected, ensure that Scouts are real people and make sure rewards go to the right person.',
+      'We will never share your personal information publicly; it is used only for verification, reward processing and keeping the community safe.',
+      'You may not register using someone else’s details or share your profile for another person to complete missions.',
+    ],
+  },
+  {
+    title: '3. Reward eligibility',
+    points: [
+      'To receive rewards, you must complete missions honestly and follow all instructions for each Signal Mission.',
+      'Rewards can only be sent to the number linked to your verified Scout profile.',
+      'If we cannot match your mission responses, registration details and reward request, we may not be able to issue the reward.',
+      'Any attempt to misuse the reward system (e.g. multiple profiles, false information) may lead to removal from the Scouts community.',
+    ],
+  },
+  {
+    title: '4. Honest participation',
+    points: [
+      'Scouts are expected to tell the truth about their experiences and opinions in missions.',
+      'You may not submit fabricated stories, copy other people’s responses or use AI tools to generate your answers.',
+      'If you don’t feel comfortable with a mission, you may skip it; however, incomplete missions may affect your eligibility for certain rewards.',
+    ],
+  },
+  {
+    title: '5. Respectful behaviour',
+    points: [
+      'Treat other Scouts and the Young Narratives team with respect at all times on WhatsApp, email, social media and any YN channels.',
+      'No bullying, harassment, hate speech, discrimination, or sharing of harmful or abusive content is allowed.',
+      'Do not share other people’s personal information or private stories without their permission.',
+      'Any disrespectful or harmful behaviour can lead to removal from the community.',
+    ],
+  },
+  {
+    title: '6. Privacy and safety',
+    points: [
+      'Keep your login and profile details safe. Do not share your password or verification codes with anyone.',
+      'Report any suspicious messages or behaviour to the Young Narratives team so we can investigate and protect the community.',
+      'Only share personal information with Young Narratives through official channels (platform, WhatsApp number or email provided in the Scouts materials).',
+    ],
+  },
+  {
+    title: '7. Use of the platform',
+    points: [
+      'The Young Narratives platform and missions are for your personal use as a Scout; you may not sell access or use your account for others.',
+      'You must follow the instructions for each mission carefully and submit your responses within the timelines given.',
+      'Do not attempt to interfere with the platform, technology or data (for example, hacking, spam or automated submissions).',
+    ],
+  },
+  {
+    title: '8. Leaving or changing your status',
+    points: [
+      'Participation in Young Narratives is voluntary; you can leave the community at any time.',
+      'If you choose to leave, any pending rewards may be processed only if your missions and details have already been verified.',
+      'If your circumstances change (e.g. you move, change number, or stop using your current device), you should update your profile so your information stays correct.',
+    ],
+  },
+]
+
+function ScoutCodeDropdown() {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="rounded-xl border border-scout-border bg-scout-card overflow-hidden">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+      >
+        <div className="flex items-center gap-2.5">
+          <ShieldCheck size={14} className="flex-shrink-0 text-scout-accent" />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-scout-text">Young Narratives Scout Code</p>
+            <p className="text-[10px] italic text-scout-text-muted">"Be Curious. Be Honest. Protect the Community."</p>
+          </div>
+        </div>
+        <ChevronDown
+          size={14}
+          className={`flex-shrink-0 text-scout-text-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && (
+        <div className="space-y-4 border-t border-scout-border px-4 py-4">
+          {SCOUT_CODE_SECTIONS.map((section, i) => (
+            <div key={i} className="space-y-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-scout-accent-light">{section.title}</p>
+              <ul className="space-y-1">
+                {section.points.map((point, j) => (
+                  <li key={j} className="flex items-start gap-2 text-xs leading-relaxed text-scout-text-sub">
+                    <span className="mt-1.5 h-1 w-1 flex-shrink-0 rounded-full bg-scout-muted" />
+                    {point}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function NotificationPanel({ open, onClose, onRead }) {
@@ -89,6 +203,8 @@ export default function NotificationPanel({ open, onClose, onRead }) {
               </p>
             </div>
           </div>
+
+          <ScoutCodeDropdown />
 
           <div className="space-y-4 text-sm leading-relaxed text-scout-text-sub">
             <p>

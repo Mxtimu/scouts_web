@@ -26,7 +26,7 @@ export async function sendWelcomeEmail({ full_name, email }) {
       to_email:  email,
       from_name: 'Signal Scouts',
       subject:   'Welcome to Signal Scouts — Your missions await',
-      reply_to:  'hello@signalscouts.co.za',
+      reply_to:  'scouts@youngnarratives.com',
     },
     PUBLIC_KEY,
   )
@@ -49,7 +49,7 @@ export async function sendPasswordResetEmail({ full_name, email, reset_link }) {
       to_email:   email,
       from_name:  'Signal Scouts',
       subject:    'Reset your Signal Scouts password',
-      reply_to:   'hello@signalscouts.co.za',
+      reply_to:   'scouts@youngnarratives.com',
       reset_link,
     },
     PUBLIC_KEY,

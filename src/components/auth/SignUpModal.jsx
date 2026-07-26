@@ -5,6 +5,7 @@ import { createScout, findScoutByEmail, recordLogin } from '../../services/supab
 import { hashPassword } from '../../services/crypto'
 import { sendWelcomeEmail } from '../../services/email'
 import { useAuth } from '../../context/AuthContext'
+import { isValidSaPhone, formatSaPhone, isValidName } from '../../utils/validators'
 
 const GOOGLE_ENABLED = !!import.meta.env.VITE_GOOGLE_CLIENT_ID
 
@@ -45,7 +46,8 @@ export default function SignUpModal({ onClose, onSwitchToSignIn }) {
   const [step, setStep]               = useState('form')   // form | google-extra
   const [googleUser, setGoogleUser]   = useState(null)
 
-  const [fullName, setFullName]       = useState('')
+  const [firstName, setFirstName]     = useState('')
+  const [lastName, setLastName]       = useState('')
   const [email, setEmail]             = useState('')
   const [phone, setPhone]             = useState('')
   const [dob, setDob]                 = useState('')
@@ -61,6 +63,15 @@ export default function SignUpModal({ onClose, onSwitchToSignIn }) {
     e.preventDefault()
     setError(null)
 
+    const trimmedFirst = firstName.trim()
+    const trimmedLast  = lastName.trim()
+    const fullName     = `${trimmedFirst} ${trimmedLast}`
+
+    if (!isValidName(trimmedFirst) || !isValidName(trimmedLast)) {
+      setError('Name and surname must contain letters only.')
+      return
+    }
+    if (!isValidSaPhone(phone))        { setError('Enter a valid SA phone number, e.g. 072 333 4356.'); return }
     if (password !== confirmPassword) { setError('Passwords do not match.'); return }
     if (password.length < 8)          { setError('Password must be at least 8 characters.'); return }
     if (!isOldEnough(dob))            { setError('You must be at least 13 years old to join.'); return }
@@ -72,7 +83,7 @@ export default function SignUpModal({ onClose, onSwitchToSignIn }) {
 
       const password_hash = await hashPassword(password)
       const scout = await createScout({
-        full_name:     fullName.trim(),
+        full_name:     fullName,
         email:         email.trim().toLowerCase(),
         phone:         phone.trim(),
         date_of_birth: dob,
@@ -82,7 +93,7 @@ export default function SignUpModal({ onClose, onSwitchToSignIn }) {
       login(scout)
       onClose()
       // Fire-and-forget — email failure must never block the user
-      sendWelcomeEmail({ full_name: fullName.trim(), email: email.trim().toLowerCase() }).catch(() => {})
+      sendWelcomeEmail({ full_name: fullName, email: email.trim().toLowerCase() }).catch(() => {})
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.')
     } finally {
@@ -105,7 +116,6 @@ export default function SignUpModal({ onClose, onSwitchToSignIn }) {
         return
       }
       setGoogleUser({ full_name: payload.name, email: payload.email })
-      setFullName(payload.name)
       setEmail(payload.email)
       setStep('google-extra')
     } catch (err) {
@@ -117,6 +127,7 @@ export default function SignUpModal({ onClose, onSwitchToSignIn }) {
 
   const handleGoogleExtraSubmit = async (e) => {
     e.preventDefault()
+    if (!isValidSaPhone(phone))    { setError('Enter a valid SA phone number, e.g. 072 333 4356.'); return }
     if (!isOldEnough(dob)) { setError('You must be at least 13 years old to join.'); return }
 
     setLoading(true)
@@ -186,8 +197,8 @@ export default function SignUpModal({ onClose, onSwitchToSignIn }) {
                   <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
                     type="tel" required
-                    value={phone} onChange={e => setPhone(e.target.value)}
-                    placeholder="+27 82 123 4567"
+                    value={phone} onChange={e => setPhone(formatSaPhone(e.target.value))}
+                    placeholder="072 333 4356"
                     className={inputClass}
                   />
                 </div>
@@ -248,16 +259,27 @@ export default function SignUpModal({ onClose, onSwitchToSignIn }) {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-3">
-                {/* Full Name */}
-                <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-slate-400">Full Name</label>
-                  <div className="relative">
-                    <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                {/* Name + Surname */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-slate-400">Name</label>
+                    <div className="relative">
+                      <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                      <input
+                        type="text" required
+                        value={firstName} onChange={e => setFirstName(e.target.value)}
+                        placeholder="Name"
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-semibold text-slate-400">Surname</label>
                     <input
                       type="text" required
-                      value={fullName} onChange={e => setFullName(e.target.value)}
-                      placeholder="Name Surname"
-                      className={inputClass}
+                      value={lastName} onChange={e => setLastName(e.target.value)}
+                      placeholder="Surname"
+                      className="w-full rounded-xl border border-scout-border bg-scout-card px-4 py-3 text-sm text-slate-200 placeholder-slate-600 outline-none transition focus:border-scout-accent/50 focus:ring-1 focus:ring-scout-accent/30"
                     />
                   </div>
                 </div>
@@ -283,8 +305,8 @@ export default function SignUpModal({ onClose, onSwitchToSignIn }) {
                     <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                     <input
                       type="tel" required
-                      value={phone} onChange={e => setPhone(e.target.value)}
-                      placeholder="+27 82 123 4567"
+                      value={phone} onChange={e => setPhone(formatSaPhone(e.target.value))}
+                      placeholder="072 333 4356"
                       className={inputClass}
                     />
                   </div>

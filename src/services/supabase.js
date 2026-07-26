@@ -82,19 +82,16 @@ export async function recordLogin(scoutId) {
   return data
 }
 
-// Updates full name/phone/location/ID number. passwordHash may be null
-// (Google-only accounts) — the RPC only enforces a match if the account
-// actually has a password. Returns null on auth failure (wrong password),
-// which the caller should show as "Incorrect password" rather than a
-// generic error.
-export async function updateScoutProfile(scoutId, passwordHash, { full_name, phone, location, id_number }) {
+// Updates full name/phone/location/ID number — trusts scout_id the same way
+// submissions/onboarding already do (no password re-verification; changing
+// the actual password goes through requestPasswordReset instead).
+export async function updateScoutProfile(scoutId, { full_name, phone, location, id_number }) {
   const { data, error } = await supabase.rpc('update_scout_profile', {
-    p_scout_id:      scoutId,
-    p_password_hash: passwordHash,
-    p_full_name:     full_name ?? null,
-    p_phone:         phone ?? null,
-    p_location:      location ?? null,
-    p_id_number:     id_number ?? null,
+    p_scout_id:  scoutId,
+    p_full_name: full_name ?? null,
+    p_phone:     phone ?? null,
+    p_location:  location ?? null,
+    p_id_number: id_number ?? null,
   })
 
   if (error) throw new Error(error.message)
